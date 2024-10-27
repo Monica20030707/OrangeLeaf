@@ -6,6 +6,9 @@ import glob
 def convert_docx_to_pdf(docx_path, pdf_path):
     doc = Document(docx_path)
     text = "\n".join([para.text for para in doc.paragraphs])
+
+    # Replace unsupported characters with similar characters or remove them
+    text = text.encode("latin-1", errors="replace").decode("latin-1")
     
     pdf = FPDF()
     pdf.add_page()
