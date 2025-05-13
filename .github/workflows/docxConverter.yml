@@ -8,8 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup:
+  convert-and-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Check out the code
         uses: actions/checkout@v4
@@ -23,18 +25,6 @@ jobs:
       - name: Create directories
         run: mkdir -p input output
       
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-  install-dependencies:
-    needs: setup
-    runs-on: ubuntu-24
-    steps:
       - name: Install TeX Live
         run: |
           sudo apt-get update
@@ -44,27 +34,14 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install python-docx fpdf
-
-  convert:
-    needs: install-dependencies
-    runs-on: ubuntu-latest
-    steps:
+      
       - name: Run converter script
         run: python converter.py
-
-  publish:
-    needs: convert
-    if: success()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
+      
       - name: Commit and push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add output/ README.md
-          git commit -m 'Convert files and update README'
-          git push
+          git commit -m 'Convert files and update README' || echo "No changes to commit"
+          git push || echo "No changes to push"
