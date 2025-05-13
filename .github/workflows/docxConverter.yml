@@ -12,22 +12,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          cache: 'pip'
       
       - name: Create directories
         run: mkdir -p input output
       
       - name: Cache dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: ${{ runner.os }}-pip-
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
   install-dependencies:
     needs: setup
@@ -39,7 +41,9 @@ jobs:
           sudo apt-get install -y texlive texlive-latex-extra
       
       - name: Install Python dependencies
-        run: pip install python-docx fpdf
+        run: |
+          python -m pip install --upgrade pip
+          pip install python-docx fpdf
 
   convert:
     needs: install-dependencies
@@ -50,14 +54,17 @@ jobs:
 
   publish:
     needs: convert
+    if: success()
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add output/ README.md
           git commit -m 'Convert files and update README'
           git push
