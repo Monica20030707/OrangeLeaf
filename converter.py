@@ -158,9 +158,13 @@ def process_files():
         filename = os.path.basename(tex_file)
         pdf_file = os.path.join(OUTPUT_FOLDER, filename.replace(".tex", ".pdf"))
         print(f"Converting {filename} to PDF...")
-        if convert_latex_to_pdf(tex_file, pdf_file):
-            # Only update README.md for LaTeX files
-            convert_latex_to_md(tex_file, "README.md")
+        
+        # Convert to PDF
+        convert_latex_to_pdf(tex_file, pdf_file)
+        
+        # Update README.md independently of PDF conversion
+        print(f"Updating README.md with content from {filename}...")
+        convert_latex_to_md(tex_file, "README.md")
 
 if __name__ == "__main__":
     process_files()
