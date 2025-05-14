@@ -1,5 +1,5 @@
-from docx import Document
-from fpdf import FPDF
+from spire.doc import *
+from spire.doc.common import *
 import os
 import glob
 import subprocess
@@ -16,18 +16,19 @@ def ensure_folders_exist():
             os.makedirs(folder)
 
 def convert_docx_to_pdf(docx_path, pdf_path):
-    doc = Document(docx_path)
-    text = "\n".join([para.text for para in doc.paragraphs])
-    
-    # Replace unsupported characters with similar characters or remove them
-    text = text.encode("latin-1", errors="replace").decode("latin-1")
-    
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=11)  # Changed to Arial as it's more widely supported
-    pdf.multi_cell(0, 10, text)
-    pdf.output(pdf_path)
+    """Convert DOCX to PDF using Spire.Doc for better formatting"""
+    try:
+        # Load the document
+        doc = Document()
+        doc.LoadFromFile(docx_path)
+        
+        # Save as PDF with formatting preserved
+        doc.SaveToFile(pdf_path, FileFormat.PDF)
+        doc.Close()
+        return True
+    except Exception as e:
+        print(f"Error converting {docx_path} to PDF: {str(e)}")
+        return False
 
 def convert_latex_to_pdf(tex_path, pdf_path):
     try:

@@ -6,6 +6,13 @@ on:
       - '**.docx'
       - '**.tex'
       - 'input/**'
+      - 'converter.py'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - '**.docx'
+      - '**.tex'
+      - 'input/**'
   workflow_dispatch:
 
 jobs:
