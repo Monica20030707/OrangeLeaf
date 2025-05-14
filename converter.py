@@ -1,5 +1,4 @@
-from spire.doc import *
-from spire.doc.common import *
+from docx2pdf import convert
 import os
 import glob
 import subprocess
@@ -16,15 +15,9 @@ def ensure_folders_exist():
             os.makedirs(folder)
 
 def convert_docx_to_pdf(docx_path, pdf_path):
-    """Convert DOCX to PDF using Spire.Doc for better formatting"""
+    """Convert DOCX to PDF using docx2pdf"""
     try:
-        # Load the document
-        doc = Document()
-        doc.LoadFromFile(docx_path)
-        
-        # Save as PDF with formatting preserved
-        doc.SaveToFile(pdf_path, FileFormat.PDF)
-        doc.Close()
+        convert(docx_path, pdf_path)
         return True
     except Exception as e:
         print(f"Error converting {docx_path} to PDF: {str(e)}")

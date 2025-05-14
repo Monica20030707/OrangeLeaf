@@ -33,12 +33,22 @@ jobs:
       - name: Install TeX Live
         run: |
           sudo apt-get update
-          sudo apt-get install -y texlive texlive-latex-extra texlive-fonts-extra
+          sudo apt-get install -y \
+            texlive-full \
+            texlive-latex-extra \
+            texlive-fonts-extra \
+            latexmk \
+            pandoc
       
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-docx fpdf
+          pip install \
+            python-docx \
+            fpdf \
+            docx2pdf \
+            pypdf2 \
+            reportlab
       
       - name: Run converter script
         run: python converter.py
