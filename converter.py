@@ -61,17 +61,12 @@ def convert_latex_to_md(tex_path, md_path):
         in_itemize = False
         current_section = None
         
-        # Define main sections to look for
-        main_sections = {
-            'Education': [],
-            'Experience': [],
-            'Projects': [],
-            'Skills': []
-        }
-        
         for line in content:
-            # Skip preamble and style commands
-            if any(cmd in line for cmd in ['\\documentclass', '\\usepackage', '\\renewcommand']):
+            # Skip LaTeX preamble and style commands
+            if line.startswith('\\') and any(cmd in line for cmd in [
+                'documentclass', 'usepackage', 'renewcommand', 'titleformat',
+                'setlist', 'raggedright', 'pagestyle', 'begin{document}'
+            ]):
                 continue
                 
             # Handle name section
@@ -92,53 +87,43 @@ def convert_latex_to_md(tex_path, md_path):
                         formatted_links.append(f"[{text}]({url})")
                     else:
                         formatted_links.append(link.strip())
-                md_content.append(' | '.join(formatted_links) + '\n')
+                md_content.append(' | '.join(formatted_links) + '\n\n')
                 continue
 
             # Handle section headers
             if '\\section*{' in line:
                 section = line.split('{')[1].split('}')[0]
-                current_section = section
-                main_sections[section] = []  # Initialize section content
-                main_sections[section].append(f"\n## {section}\n")
+                md_content.append(f"\n## {section}\n\n")
                 continue
                 
-            # Add content to current section
-            if current_section and line.strip():
-                # Handle bold text
-                if '\\textbf{' in line:
-                    line = line.replace('\\textbf{', '**').replace('}', '**')
-                    if '\\hfill' in line:
-                        parts = line.split('\\hfill')
-                        line = f"{parts[0].strip()} | {parts[1].strip()}\n"
+            # Handle bold text
+            if '\\textbf{' in line:
+                line = line.replace('\\textbf{', '**').replace('}', '**')
+                if '\\hfill' in line:
+                    parts = line.split('\\hfill')
+                    line = f"{parts[0].strip()} | {parts[1].strip()}\n\n"
                 
-                # Handle itemize environment
-                if '\\begin{itemize}' in line:
-                    in_itemize = True
-                    continue
-                elif '\\end{itemize}' in line:
-                    in_itemize = False
-                    main_sections[current_section].append('\n')
-                    continue
+            # Handle itemize environment
+            if '\\begin{itemize}' in line:
+                in_itemize = True
+                continue
+            elif '\\end{itemize}' in line:
+                in_itemize = False
+                md_content.append('\n')
+                continue
                 
-                # Handle list items
-                if '\\item' in line and in_itemize:
-                    item_text = line.replace('\\item', '').strip()
-                    main_sections[current_section].append(f"- {item_text}\n")
-                    continue
+            # Handle list items
+            if '\\item' in line and in_itemize:
+                item_text = line.replace('\\item', '').strip()
+                md_content.append(f"- {item_text}\n")
+                continue
                 
-                # Skip spacing commands
-                if '\\vspace' in line or not line.strip():
-                    continue
-                
-                # Add regular text to current section
-                if line.strip() and not line.startswith('%'):
-                    main_sections[current_section].append(line.strip() + '\n')
-
-        # Combine all sections in order
-        for section in ['Education', 'Experience', 'Projects', 'Skills']:
-            if section in main_sections and main_sections[section]:
-                md_content.extend(main_sections[section])
+            # Skip comments and empty lines
+            if line.strip() and not line.startswith('%'):
+                # Clean up any remaining LaTeX commands
+                line = line.replace('\\vspace{-9pt}', '').replace('\\vspace{-18.5pt}', '')
+                if line.strip():
+                    md_content.append(line.strip() + '\n')
 
         # Write to README.md
         with open(md_path, 'w', encoding='utf-8') as md_file:
