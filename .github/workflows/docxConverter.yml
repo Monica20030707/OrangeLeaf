@@ -34,21 +34,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            texlive-full \
-            texlive-latex-extra \
-            texlive-fonts-extra \
-            latexmk \
-            pandoc
+            texlive-latex-base \
+            texlive-fonts-recommended \
+            texlive-latex-recommended
       
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install \
-            python-docx \
-            fpdf \
-            docx2pdf \
-            pypdf2 \
-            reportlab
+          pip install docx2pdf
       
       - name: Run converter script
         run: python converter.py

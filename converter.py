@@ -15,13 +15,19 @@ def ensure_folders_exist():
             os.makedirs(folder)
 
 def convert_docx_to_pdf(docx_path, pdf_path):
-    """Convert DOCX to PDF using docx2pdf"""
+    """Convert DOCX to PDF using LibreOffice headless CLI to preserve layout"""
     try:
-        convert(docx_path, pdf_path)
-        return True
-    except Exception as e:
-        print(f"Error converting {docx_path} to PDF: {str(e)}")
-        return False
+        output_dir = os.path.dirname(pdf_path)
+        subprocess.run([
+            "soffice",  # or "libreoffice" depending on OS
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", output_dir,
+            docx_path
+        ], check=True)
+        print(f"Converted with full styling: {docx_path} -> {pdf_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"LibreOffice failed to convert {docx_path}: {e}")
 
 def convert_latex_to_pdf(tex_path, pdf_path):
     try:
@@ -53,22 +59,22 @@ def convert_latex_to_md(tex_path, md_path):
 
         md_content = []
         in_itemize = False
+        current_section = None
+        
+        # Define main sections to look for
+        main_sections = {
+            'Education': [],
+            'Experience': [],
+            'Projects': [],
+            'Skills': []
+        }
         
         for line in content:
-            # Skip comments and LaTeX commands we don't need
-            if line.strip().startswith('%') or any(cmd in line for cmd in [
-                '\\documentclass', '\\usepackage', '\\input', '\\renewcommand',
-                '\\setlist', '\\raggedright', '\\pagestyle'
-            ]):
+            # Skip preamble and style commands
+            if any(cmd in line for cmd in ['\\documentclass', '\\usepackage', '\\renewcommand']):
                 continue
                 
-            # Handle section headers
-            if '\\section*{' in line:
-                section = line.split('{')[1].split('}')[0]
-                md_content.append(f"\n## {section}\n")
-                continue
-                
-            # Handle name (centerline with Huge)
+            # Handle name section
             if '\\centerline{\\Huge' in line:
                 name = line.split('\\Huge')[1].strip()[:-1]
                 md_content.append(f"# {name}\n\n")
@@ -88,38 +94,51 @@ def convert_latex_to_md(tex_path, md_path):
                         formatted_links.append(link.strip())
                 md_content.append(' | '.join(formatted_links) + '\n')
                 continue
-                
-            # Handle bold text
-            if '\\textbf{' in line:
-                line = line.replace('\\textbf{', '**').replace('}', '**')
-                if '\\hfill' in line:
-                    parts = line.split('\\hfill')
-                    line = f"{parts[0].strip()} | {parts[1].strip()}\n"
-                md_content.append(line)
+
+            # Handle section headers
+            if '\\section*{' in line:
+                section = line.split('{')[1].split('}')[0]
+                current_section = section
+                main_sections[section] = []  # Initialize section content
+                main_sections[section].append(f"\n## {section}\n")
                 continue
                 
-            # Handle itemize environment
-            if '\\begin{itemize}' in line:
-                in_itemize = True
-                continue
-            elif '\\end{itemize}' in line:
-                in_itemize = False
-                md_content.append('\n')
-                continue
+            # Add content to current section
+            if current_section and line.strip():
+                # Handle bold text
+                if '\\textbf{' in line:
+                    line = line.replace('\\textbf{', '**').replace('}', '**')
+                    if '\\hfill' in line:
+                        parts = line.split('\\hfill')
+                        line = f"{parts[0].strip()} | {parts[1].strip()}\n"
                 
-            # Handle items in lists
-            if '\\item' in line and in_itemize:
-                item_text = line.replace('\\item', '').strip()
-                md_content.append(f"- {item_text}\n")
-                continue
+                # Handle itemize environment
+                if '\\begin{itemize}' in line:
+                    in_itemize = True
+                    continue
+                elif '\\end{itemize}' in line:
+                    in_itemize = False
+                    main_sections[current_section].append('\n')
+                    continue
                 
-            # Skip spacing commands
-            if '\\vspace' in line or line.strip() == '':
-                continue
+                # Handle list items
+                if '\\item' in line and in_itemize:
+                    item_text = line.replace('\\item', '').strip()
+                    main_sections[current_section].append(f"- {item_text}\n")
+                    continue
                 
-            # Add any remaining text
-            if line.strip():
-                md_content.append(line.strip() + '\n')
+                # Skip spacing commands
+                if '\\vspace' in line or not line.strip():
+                    continue
+                
+                # Add regular text to current section
+                if line.strip() and not line.startswith('%'):
+                    main_sections[current_section].append(line.strip() + '\n')
+
+        # Combine all sections in order
+        for section in ['Education', 'Experience', 'Projects', 'Skills']:
+            if section in main_sections and main_sections[section]:
+                md_content.extend(main_sections[section])
 
         # Write to README.md
         with open(md_path, 'w', encoding='utf-8') as md_file:
