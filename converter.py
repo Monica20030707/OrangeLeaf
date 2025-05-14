@@ -50,7 +50,21 @@ def convert_latex_to_pdf(tex_path, pdf_path):
     except subprocess.CalledProcessError:
         print(f"Error converting {tex_path} to PDF")
         return False
-
+    
+def convert_latex_to_md(tex_path, md_path):
+    """Convert LaTeX content to Markdown"""
+    try:
+        with open(tex_path, 'r', encoding='utf-8') as tex_file:
+            content = tex_file.read()
+            
+        # Write to README.md, preserving existing content if any
+        with open(md_path, 'w', encoding='utf-8') as md_file:
+            md_file.write(content)
+        return True
+    except Exception as e:
+        print(f"Error converting {tex_path} to Markdown: {str(e)}")
+        return False
+    
 def cleanup_latex_files(basename):
     """Clean up auxiliary LaTeX files"""
     extensions = ['.aux', '.log', '.out']
